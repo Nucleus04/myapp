@@ -5,7 +5,6 @@ import 'firebase/firestore';
 import firebase from '../firebase';
 import { Link } from 'react-router-dom';
 import 'firebase/compat/firestore';
-import { Timestamp, } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 function Compose() {
@@ -13,16 +12,30 @@ function Compose() {
     const [recipientEmail, setRecipientEmail] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const FieldValue = firebase.firestore.FieldValue;
     const navigate = useNavigate();
+    const [emailError, setEmailError] = useState("");
+
 
     const handleRecipientEmailChange = (event) => {
         setRecipientEmail(event.target.value);
     }
 
+
     const handleMessageChange = (event) => {
         setMessage(event.target.value);
     }
+
+    
+    useEffect(() => {
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (recipientEmail.length > 0 && !emailRegex.test(recipientEmail)) {
+            setEmailError("Invalid email address");
+        } 
+        else {
+            setEmailError("");
+            }
+    }, [recipientEmail]);
+    
 
     const handleSend = () => {
         firebase.auth().fetchSignInMethodsForEmail(recipientEmail)
@@ -48,14 +61,9 @@ function Compose() {
             })
             .catch((error) => {
                 console.error('Error sending message:', error);
-                setError("Message not sent.");
+                setError("Message not sent. Recipient may not be on database.");
             });
     }
-    
-      
-      
-    
-      
       
     return (
         <div className='compose-container'>
@@ -65,6 +73,7 @@ function Compose() {
                         {error && <p className='red'>{error}</p>}
                     </div>
                      <label>To:</label>
+                    {emailError && <p className='red'>{emailError}</p>}
                     <div className='search-user'>
                         
                         <input type="email" value={recipientEmail} onChange={handleRecipientEmailChange} placeholder='Type here the email address of the reciever'/>
@@ -81,7 +90,6 @@ function Compose() {
                     </div>
                 </div>
             </div>
-            
         </div>
     )
 }

@@ -10,6 +10,7 @@ function Home() {
     const [currentUserEmail, setCurrentUserEmail] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
 
+    //For Remembering users in current session
     useEffect(() => {
         const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
             if (user) {
@@ -21,6 +22,8 @@ function Home() {
         return () => unsubscribe();
     }, []);
 
+
+    //Get messages in firebase
     useEffect(() => {
         if (currentUserEmail) {
             const unsubscribe = firebase.firestore().collection('messages')
@@ -30,8 +33,7 @@ function Home() {
                     querySnapshot.forEach((doc) => {
                         const senderEmail = doc.data().senderEmail;
                         const messageText = doc.data().message;
-                        //if (!sendersArray.some(sender => sender.senderEmail === senderEmail)) {
-                            sendersArray.push({ senderEmail, messageText });
+                        sendersArray.push({ senderEmail, messageText });
                         
                     });
                     setSenders(sendersArray);
@@ -43,10 +45,12 @@ function Home() {
         }
     }, [currentUserEmail]);
 
+
     const handleEditClick = () => {
         setIsEditing(!isEditing);
     };
 
+    //Function when deleting messages
     const handleDeleteClick = (senderEmail, message) => {
         firebase.firestore().collection('messages')
             .where('recipientEmail', '==', currentUserEmail)

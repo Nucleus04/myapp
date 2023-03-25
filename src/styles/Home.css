@@ -67,9 +67,11 @@
     border: 1px solid black;
     background-color: rgb(254, 217, 217);
     display: flex;
+    overflow: hidden;
 }
 .chats button{
     justify-content: end;
+    overflow: hidden;
 }
 .sender-name{
     width: 50%;
