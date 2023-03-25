@@ -60,7 +60,7 @@
 }
 
 .chats{
-    height: 70px;
+
     width: 80%;background-color: aqua;
     margin-top: 20px;
     border-radius: 20px;
@@ -85,18 +85,27 @@
     align-items: center;
     justify-content: center;
 }
-.delete-button button{
+.message button{
     width: 70px;
     text-decoration: none;
     height: 30px;
     border-radius: 7px;
     color: black;
     border: none;
+    margin-left: 20px;
 }
-.red{
+.reds{
     background-color: rgb(255, 93, 93);
 }
 .green{
     background-color: rgb(88, 255, 66);
     
+}
+.message{
+    display: flex;
+    width: 100%;
+    align-items: center;
+}
+.message p{
+    max-width: 400px;
 }

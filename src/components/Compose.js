@@ -75,8 +75,8 @@ function Compose() {
                         <textarea value={message} onChange={handleMessageChange} placeholder='Write your message here!'></textarea>
                     </div>
                     <div className='button-container'>
-                        <Link to={"/Home"}><button className='red'>Back</button></Link>
-                        <button onClick={handleSend} className='green'>Send</button>
+                        <Link to={"/Home"}><button className='reds'>Back</button></Link>
+                        <button onClick={handleSend} className='greens'>Send</button>
 
                     </div>
                 </div>

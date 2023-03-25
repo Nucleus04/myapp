@@ -87,16 +87,17 @@ function Home() {
                     <div key={index} className='list'>
                         <div className='chats'>
                             <div className='sender-name'>
-                                <p>{sender.senderEmail}</p>
+                                <p><b>From:</b> {sender.senderEmail}</p>
                             </div>
-                            <div className='message-text'>
-                                <p>{sender.messageText}</p>
-                            </div>
-                            {isEditing && (
+                            <div className='message'>
+                                <p><b>Message:</b> {sender.messageText}</p>
+                                {isEditing && (
                                 <div className='delete-buttons'>
                                     <button className='delete-button red' onClick={() => handleDeleteClick(sender.senderEmail, sender.messageText)}>Delete</button>
                                 </div>
-                            )}
+                                )}
+                            </div>
+                            
                         </div>
                     </div>
                 ))}
