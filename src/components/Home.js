@@ -69,10 +69,10 @@ function Home() {
                 setIsLoading(false);
             });
       
-          return () => {
-            inboxUnsubscribe();
-            sentUnsubscribe();
-          };
+            return () => {
+                inboxUnsubscribe();
+                sentUnsubscribe();
+            };
         }
       }, [currentUserEmail, isCurrentUserInitialized]);
       
@@ -123,18 +123,22 @@ function Home() {
     };
 
     if (isLoading) {
-        return <p>Loading...</p>;
+        return (
+            <div className='center-loading'>
+                <p>Loading...</p>
+            </div>
+        )
     }
-    console.log("final COntact", contact);
+
     return (
         <div className='home-container'>
             <div className='home-header'>
                 <div className='upper-header'>
                     <div className='flex'>
-                        <button className='left-button' onClick={handleEditClick}>{isEditing ? 'Done' : 'Edit'}</button>
+                        <h3 className='left-button' onClick={handleEditClick}>{isEditing ? 'Done' : 'Edit'}</h3>
                     </div>
                     <div className='flex right'>
-                        <Link to={"/Compose"}><button className='right-button'>Compose</button></Link>
+                        <Link to={"/Compose"}><h3 className='right-button'>Compose</h3></Link>
                     </div>
                 </div>
                 <div className='lower-header'>

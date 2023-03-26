@@ -12,4 +12,3 @@
 3. Delete operation
 4. Chat history (only include recieved messages and do not have timestamp)
 
-#
