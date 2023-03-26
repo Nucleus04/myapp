@@ -6,19 +6,22 @@ import '../styles/Home.css';
 
 function Home() {
     const [senders, setSenders] = useState([]);
-    const [reciever, setReciever] = useState([]);
+    const [reciever, setRecievers] = useState([]);
     const [contact, setContacts] = useState([]);
+    const [contactName, setContactName] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserEmail, setCurrentUserEmail] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const navigate = useNavigate();
     const [selectedNav, setSelectedNav] = useState('inbox');
+    const [isCurrentUserInitialized, setIsCurrentUserInitialized] = useState(false);
 
     //For Remembering users in current session
     useEffect(() => {
         const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 setCurrentUserEmail(user.email);
+                setIsCurrentUserInitialized(true);
             } else {
                 setCurrentUserEmail(null);
             }
@@ -29,76 +32,82 @@ function Home() {
 
 
     useEffect(() => {
-        if (currentUserEmail) {
-            const unsubscribe = firebase.firestore().collection('messages')
-                .where('recipientEmail', '==', currentUserEmail)
-                .onSnapshot((querySnapshot) => {
-                    const sendersArray = [];
-                    const contactsSet = new Set();
-                    querySnapshot.forEach((doc) => {
-                        const senderEmail = doc.data().senderEmail;
-                        const messageText = doc.data().message;
-                        sendersArray.push({ senderEmail, messageText });
-                        console.log(senderEmail);
-                        if (senderEmail === currentUserEmail) {
-                            
-                        } else {
-                          contactsSet.add(senderEmail);
-
-                        }
-                        
-                    });
-                    console.log([...contactsSet]);
-                    setContacts([...contactsSet]);
-                    setSenders(sendersArray);
-                    setIsLoading(false);
-                });
-            return () => unsubscribe();
-        } else {
-            setIsLoading(false);
+        const sendersArray = [];
+        const contactsSet = new Set();
+        if (isCurrentUserInitialized) {
+          const inboxUnsubscribe = firebase.firestore().collection('messages')
+            .where('recipientEmail', '==', currentUserEmail)
+            .onSnapshot((querySnapshot) => {
+             
+              querySnapshot.forEach((doc) => {
+                const senderEmail = doc.data().senderEmail;
+                if (senderEmail !== currentUserEmail) {
+                  contactsSet.add(senderEmail);
+                }
+                sendersArray.push({ senderEmail, messageText: doc.data().message, type: 'inbox' });
+              });
+              setContacts([...contactsSet]);
+              setSenders(sendersArray);
+              setIsLoading(false);
+            });
+        
+            const sentUnsubscribe = firebase.firestore().collection('messages')
+            .where('senderEmail', '==', currentUserEmail)
+            .onSnapshot((querySnapshot) => {
+              const recieversArray = [];
+              const contactsSet = new Set();
+              querySnapshot.forEach((doc) => {
+                const recieverEmail = doc.data().recipientEmail;
+                if (recieverEmail !== currentUserEmail) {
+                  contactsSet.add(recieverEmail);
+                }
+                recieversArray.push({ senderEmail: recieverEmail, messageText: doc.data().message, type: 'sent' });
+              });
+              const uniqueContacts = [...new Set([...contactsSet, ...sendersArray.map(s => s.senderEmail)])];
+              setContacts(uniqueContacts.map(c => ({ senderEmail: c, type: 'contact' })));
+              setRecievers(recieversArray);
+              setIsLoading(false);
+            });
+          
+          return () => {
+            inboxUnsubscribe();
+            sentUnsubscribe();
+          };
         }
-    }, [currentUserEmail]);
-
-    
-    useEffect(() => {
-        if (currentUserEmail) {
-            const unsubscribe = firebase.firestore().collection('messages')
-                .where('senderEmail', '==', currentUserEmail)
-                .onSnapshot((querySnapshot) => {
-                    const sendersArray = [];
-                    const contactsSet = new Set();
-                    querySnapshot.forEach((doc) => {
-                        const senderEmail = doc.data().recipientEmail;
-                        const messageText = doc.data().message;
-                        sendersArray.push({ senderEmail, messageText });
-                        if (senderEmail === currentUserEmail) {
-                            
-                        } else {
-                          contactsSet.add(senderEmail);
-
-                        }
-                        
-                    });
-                    console.log("Array",sendersArray);
-                    setContacts([...contactsSet]);
-                    setReciever(sendersArray);
-                    setIsLoading(false);
-                });
-            return () => unsubscribe();
-        } else {
-            setIsLoading(false);
-        }
-    }, [currentUserEmail]);
+      }, [currentUserEmail, isCurrentUserInitialized]);
+      
+      
 
     const handleEditClick = () => {
         setIsEditing(!isEditing);
     };
 
     //Function when deleting messages
-    const handleDeleteClick = (senderEmail, message) => {
+  const handleDeleteClick = (senderEmail, message) => {
+  // Delete message from Firebase
+  firebase.firestore().collection('messages')
+    .where('recipientEmail', '==', currentUserEmail)
+    .where('senderEmail', '==', senderEmail)
+    .where('message', '==',message)
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        doc.ref.delete();
+      });
+    })
+    .catch((error) => {
+      console.error('Error deleting document: ', error);
+    });
+
+  // Remove message from reciever state
+  setRecievers((prevReciever) => prevReciever.filter((message) => message.senderEmail !== senderEmail || message.messageText !== message));
+};
+
+
+    const handleDeleteSent = (recieverEmail, message) => {
         firebase.firestore().collection('messages')
-            .where('recipientEmail', '==', currentUserEmail)
-            .where('senderEmail', '==', senderEmail)
+            .where('senderEmail', '==', currentUserEmail)
+            .where('recipientEmail', '==', recieverEmail)
             .where('message', '==',message)
             .get()
             .then((querySnapshot) => {
@@ -114,7 +123,7 @@ function Home() {
     if (isLoading) {
         return <p>Loading...</p>;
     }
-
+    console.log("Final COntact: ", contact);
     return (
         <div className='home-container'>
             <div className='home-header'>
@@ -145,12 +154,12 @@ function Home() {
                 </div>
                 {selectedNav === 'inbox' && (
                     <div className='messages'>
-                    {reciever.length > 0 ? (
+                    {reciever ? (
                         senders.map((sender, index) => (
                             <div key={index} className='list'>
                                 <div className='chats'>
                                     <div className='sender-name'>
-                                        <p><b>To:</b> {sender.senderEmail}</p>
+                                        <p><b>From:</b> {sender.senderEmail}</p>
                                     </div>
                                     <div className='message'>
                                         <p><b>Message:</b> {sender.messageText}</p>
@@ -183,7 +192,7 @@ function Home() {
                                         <p><b>Message:</b> {sender.messageText}</p>
                                         {isEditing && (
                                         <div className='delete-buttons'>
-                                            <button className='delete-button red' onClick={() => handleDeleteClick(sender.senderEmail, sender.messageText)}>Delete</button>
+                                            <button className='delete-button red' onClick={() => handleDeleteSent(sender.senderEmail, sender.messageText)}>Delete</button>
                                         </div>
                                         )}
                                     </div>
@@ -199,21 +208,19 @@ function Home() {
 
                 {selectedNav === 'contacts' && (
                     <div className='messages'>
-                    {contact.length > 0 ? (
+                    {contact ? (
                         contact.map((sender, index) => (
                             <div key={index} className='list'>
-                                <div className='chats'>
-                                    <div className='sender-name contact-name'>
-                                        <p><b>Email: </b>{sender}</p>
-                                    </div>
-        
-                                    
+                            <div className='chats'>
+                                <div className='sender-name contact-name'>
+                                <p><b>Email: </b>{sender.senderEmail}</p>
                                 </div>
                             </div>
+                            </div>
                         ))
-                    ) : (
+                        ) : (
                         <div className='no-message'>No contacts.</div>
-                    )}
+                        )}
                     </div>
                     )}
                 </div>
