@@ -30,45 +30,45 @@ function Home() {
     }, []);
 
 
-
+    //useEffect for retrieving inbox messages, sentmessages, contact list
     useEffect(() => {
         const sendersArray = [];
-        const contactsSet = new Set();
         if (isCurrentUserInitialized) {
-          const inboxUnsubscribe = firebase.firestore().collection('messages')
+            const inboxUnsubscribe = firebase.firestore().collection('messages')
             .where('recipientEmail', '==', currentUserEmail)
             .onSnapshot((querySnapshot) => {
-             
-              querySnapshot.forEach((doc) => {
+                const contactsSet = new Set();
+                querySnapshot.forEach((doc) => {               
                 const senderEmail = doc.data().senderEmail;
                 if (senderEmail !== currentUserEmail) {
                   contactsSet.add(senderEmail);
                 }
                 sendersArray.push({ senderEmail, messageText: doc.data().message, type: 'inbox' });
-              });
-              setContacts([...contactsSet]);
-              setSenders(sendersArray);
-              setIsLoading(false);
+                });
+            setContacts([...contactsSet]);
+            setSenders(sendersArray);
+            setIsLoading(false);
             });
-        
+      
             const sentUnsubscribe = firebase.firestore().collection('messages')
-            .where('senderEmail', '==', currentUserEmail)
-            .onSnapshot((querySnapshot) => {
-              const recieversArray = [];
-              const contactsSet = new Set();
-              querySnapshot.forEach((doc) => {
+                .where('senderEmail', '==', currentUserEmail)
+                .onSnapshot((querySnapshot) => {
+                const recieversArray = [];
+                const contactsSet = new Set();
+                querySnapshot.forEach((doc) => {
                 const recieverEmail = doc.data().recipientEmail;
                 if (recieverEmail !== currentUserEmail) {
-                  contactsSet.add(recieverEmail);
+                    contactsSet.add(recieverEmail);
                 }
                 recieversArray.push({ senderEmail: recieverEmail, messageText: doc.data().message, type: 'sent' });
-              });
-              const uniqueContacts = [...new Set([...contactsSet, ...sendersArray.map(s => s.senderEmail)])];
-              setContacts(uniqueContacts.map(c => ({ senderEmail: c, type: 'contact' })));
-              setRecievers(recieversArray);
-              setIsLoading(false);
+                });
+                const mergedArray = [...sendersArray, ...recieversArray];
+                const uniqueContacts = [...new Set(mergedArray.map(item => item.senderEmail))];
+                setContacts(uniqueContacts.map(c => ({ senderEmail: c, type: 'contact' })));
+                setRecievers(recieversArray);
+                setIsLoading(false);
             });
-          
+      
           return () => {
             inboxUnsubscribe();
             sentUnsubscribe();
@@ -77,33 +77,35 @@ function Home() {
       }, [currentUserEmail, isCurrentUserInitialized]);
       
       
+      
+      
 
     const handleEditClick = () => {
         setIsEditing(!isEditing);
     };
 
-    //Function when deleting messages
-  const handleDeleteClick = (senderEmail, message) => {
-  // Delete message from Firebase
-  firebase.firestore().collection('messages')
-    .where('recipientEmail', '==', currentUserEmail)
-    .where('senderEmail', '==', senderEmail)
-    .where('message', '==',message)
-    .get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        doc.ref.delete();
-      });
-    })
-    .catch((error) => {
-      console.error('Error deleting document: ', error);
-    });
-
-  // Remove message from reciever state
-  setRecievers((prevReciever) => prevReciever.filter((message) => message.senderEmail !== senderEmail || message.messageText !== message));
-};
-
-
+    //Function when deleting inbox messages
+    const handleDeleteClick = (recieverEmail, message) => {
+        firebase.firestore().collection('messages')
+          .where('recipientEmail', '==', currentUserEmail)
+          .where('senderEmail', '==', recieverEmail)
+          .where('message', '==',message)
+          .get()
+          .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              doc.ref.delete().then(() => {
+                setSenders(prevSenders => prevSenders.filter((sender) => sender.senderEmail !== recieverEmail || sender.messageText !== message));
+              });
+            });
+          })
+          .catch((error) => {
+            console.error('Error deleting document: ', error);
+          });
+      };
+      
+      
+      
+    //function for deleting sent messages
     const handleDeleteSent = (recieverEmail, message) => {
         firebase.firestore().collection('messages')
             .where('senderEmail', '==', currentUserEmail)
@@ -123,7 +125,7 @@ function Home() {
     if (isLoading) {
         return <p>Loading...</p>;
     }
-    console.log("Final COntact: ", contact);
+    console.log("final COntact", contact);
     return (
         <div className='home-container'>
             <div className='home-header'>
